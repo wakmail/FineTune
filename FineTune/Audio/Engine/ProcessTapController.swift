@@ -799,6 +799,11 @@ final class ProcessTapController: ProcessTapControlling {
 
     /// Tears down the tap and releases all CoreAudio resources.
     /// Safe to call multiple times - subsequent calls are no-ops.
+    ///
+    /// Owners must call this before releasing the controller. The IO proc closure can
+    /// temporarily promote its weak reference on the HAL thread, making that thread
+    /// responsible for the final release. An actor isolated deinitializer would trap
+    /// in that valid lifecycle race.
     private var _invalidating = false
     func invalidate() {
         guard beginInvalidation() else { return }
@@ -865,10 +870,6 @@ final class ProcessTapController: ProcessTapControlling {
         secondaryLoudnessCompensator = nil
         secondaryLoudnessEqualizerProcessor = nil
         _invalidating = false
-    }
-
-    isolated deinit {
-        invalidate()
     }
 
     // MARK: - Crossfade Operations
