@@ -4,12 +4,12 @@
         <title>FineTune</title>
         <item>
             <title>1.9.1</title>
-            <pubDate>Mon, 07 Sep 2026 02:02:37 -0400</pubDate>
+            <pubDate>Mon, 07 Sep 2026 04:54:38 -0400</pubDate>
             <link>https://github.com/wakmail/FineTune</link>
-            <sparkle:version>5</sparkle:version>
+            <sparkle:version>6</sparkle:version>
             <sparkle:shortVersionString>1.9.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.4</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/wakmail/FineTune/releases/download/v1.9.1-fork.5/FineTune.dmg" length="5497296" type="application/octet-stream" sparkle:edSignature="AzfcVxvRcQhL9xCfYxdG28j0VQUP7vG3FC3/1bRLy9zcU7n5Z2XAqypSwF13U9BBPrH+43zEqtLLXF4zMdemAQ=="/>
+            <enclosure url="https://github.com/wakmail/FineTune/releases/download/v1.9.1-fork.6/FineTune.dmg" length="5518417" type="application/octet-stream" sparkle:edSignature="M0GgjPdCZExtClwdZyGcwDsDw+R5mA918iQJulu0cmoHJsmZ5zncrZ+Q3zdc2DLdTloFqLSahhZuEUUhQFYrDg=="/>
         </item>
     </channel>
 </rss>
