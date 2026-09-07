@@ -63,4 +63,10 @@ struct VolumeHotkeyStepCoverageTests {
         let pressesToMax = Int(round(1.0 / VolumeHotkeyStep.normal.sliderDelta))
         #expect(pressesToMax == 16)
     }
+
+    @Test("Two percent step changes the slider by exactly 0.02")
+    func twoPercentStep() {
+        #expect(VolumeHotkeyStep.twoPercent.sliderDelta == 0.02)
+        #expect(VolumeHotkeyStep.twoPercent.percentageDescription == "2%")
+    }
 }

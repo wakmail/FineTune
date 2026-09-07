@@ -372,6 +372,32 @@ struct MenuBarPopupView: View {
 
                 Spacer()
 
+                Menu {
+                    ForEach(VolumeHotkeyStep.allCases) { step in
+                        Button {
+                            audioEngine.settingsManager.appSettings.volumeHotkeyStep = step
+                        } label: {
+                            if audioEngine.settingsManager.appSettings.volumeHotkeyStep == step {
+                                Label(step.description, systemImage: "checkmark")
+                            } else {
+                                Text(step.description)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(
+                        "Step \(audioEngine.settingsManager.appSettings.volumeHotkeyStep.percentageDescription)",
+                        systemImage: "speaker.wave.1"
+                    )
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .help("Choose volume step")
+
+                Spacer()
+
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {

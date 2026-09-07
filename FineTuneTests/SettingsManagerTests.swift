@@ -299,10 +299,10 @@ struct AppSettingsDefaultTests {
     @Test("volumeHotkeyStep round-trips through JSON")
     func volumeHotkeyStepRoundTrip() throws {
         var settings = AppSettings()
-        settings.volumeHotkeyStep = .fine
+        settings.volumeHotkeyStep = .twoPercent
         let data = try JSONEncoder().encode(settings)
         let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
-        #expect(decoded.volumeHotkeyStep == .fine)
+        #expect(decoded.volumeHotkeyStep == .twoPercent)
     }
 
     @Test("Missing volumeHotkeyStep key decodes to .normal")

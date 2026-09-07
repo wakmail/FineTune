@@ -134,6 +134,7 @@ enum VolumeHotkeyStep: String, Codable, CaseIterable, Identifiable, CustomString
     case coarse
     case normal
     case fine
+    case twoPercent
     case extraFine
 
     var id: String { rawValue }
@@ -143,6 +144,7 @@ enum VolumeHotkeyStep: String, Codable, CaseIterable, Identifiable, CustomString
         case .coarse:    return 1.0 / 8.0
         case .normal:    return 1.0 / 16.0
         case .fine:      return 1.0 / 32.0
+        case .twoPercent: return 0.02
         case .extraFine: return 1.0 / 64.0
         }
     }
@@ -152,7 +154,18 @@ enum VolumeHotkeyStep: String, Codable, CaseIterable, Identifiable, CustomString
         case .coarse:    return "Coarse (12.5%)"
         case .normal:    return "Normal (6.25%)"
         case .fine:      return "Fine (3.13%)"
-        case .extraFine: return "Extra-Fine (1.56%)"
+        case .twoPercent: return "Two Percent (2%)"
+        case .extraFine: return "Extra Fine (1.56%)"
+        }
+    }
+
+    var percentageDescription: String {
+        switch self {
+        case .coarse: return "12.5%"
+        case .normal: return "6.25%"
+        case .fine: return "3.13%"
+        case .twoPercent: return "2%"
+        case .extraFine: return "1.56%"
         }
     }
 }
