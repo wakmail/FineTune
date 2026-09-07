@@ -2,6 +2,37 @@
 import SwiftUI
 import AppKit
 
+enum SettingsWindowPositioner {
+    static let windowTitle = "FineTune Settings"
+
+    nonisolated static func centeredOrigin(
+        windowSize: CGSize,
+        visibleFrame: CGRect
+    ) -> CGPoint {
+        let centeredX = visibleFrame.midX - windowSize.width / 2
+        let centeredY = visibleFrame.midY - windowSize.height / 2
+        let maximumX = max(visibleFrame.minX, visibleFrame.maxX - windowSize.width)
+        let maximumY = max(visibleFrame.minY, visibleFrame.maxY - windowSize.height)
+
+        return CGPoint(
+            x: min(max(centeredX, visibleFrame.minX), maximumX),
+            y: min(max(centeredY, visibleFrame.minY), maximumY)
+        )
+    }
+
+    @MainActor
+    static func centerWhenAvailable(in visibleFrame: CGRect) async {
+        for _ in 0..<20 {
+            if let window = NSApplication.shared.windows.first(where: { $0.title == windowTitle }) {
+                window.setFrameOrigin(centeredOrigin(windowSize: window.frame.size, visibleFrame: visibleFrame))
+                window.makeKeyAndOrderFront(nil)
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
+}
+
 /// Pins the host `NSWindow`'s title to a fixed string. Insert as an invisible
 /// background in scenes whose title would otherwise be driven by SwiftUI
 /// (notably `Settings { TabView { … } }`, where macOS rewrites the window

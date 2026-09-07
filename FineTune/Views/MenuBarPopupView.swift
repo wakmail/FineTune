@@ -322,10 +322,17 @@ struct MenuBarPopupView: View {
     }
 
     private func openSettingsWindow() {
+        let targetVisibleFrame = NSApp.keyWindow?.screen?.visibleFrame
+            ?? NSScreen.main?.visibleFrame
         exitEditModeSaving()
         NSApp.keyWindow?.resignKey()
         NSApp.activate(ignoringOtherApps: true)
         openSettings()
+        if let targetVisibleFrame {
+            Task { @MainActor in
+                await SettingsWindowPositioner.centerWhenAvailable(in: targetVisibleFrame)
+            }
+        }
     }
 
     // MARK: - Main Content
