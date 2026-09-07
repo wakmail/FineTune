@@ -92,7 +92,7 @@ final class AudioProcessMonitor: AudioProcessMonitoring {
         mElement: kAudioObjectPropertyElementMain
     )
 
-    init(removalLingerDuration: Duration = .seconds(3)) {
+    init(removalLingerDuration: Duration = .seconds(5)) {
         self.removalLingerDuration = removalLingerDuration
     }
 
@@ -340,6 +340,16 @@ final class AudioProcessMonitor: AudioProcessMonitoring {
             }
         }
     }
+
+#if DEBUG
+    /// Lets tests await the scheduled work without relying on scheduler timing.
+    func waitForPendingRemovals() async {
+        let tasks = Array(pendingRemovalTasks.values)
+        for task in tasks {
+            await task.value
+        }
+    }
+#endif
 
     private func publish(_ apps: [AudioApp]) {
         let sorted = apps.sorted {
