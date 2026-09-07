@@ -1,0 +1,72 @@
+name: Build Fork Release
+
+on:
+  push:
+    tags:
+      - 'v*-fork.*'
+
+jobs:
+  build:
+    if: github.repository != 'ronitsingh10/FineTune'
+    runs-on: macos-26
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${VERSION%%-fork.*}"
+          sed -i '' "s/MARKETING_VERSION = [^;]*/MARKETING_VERSION = $VERSION/g" FineTune.xcodeproj/project.pbxproj
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*/CURRENT_PROJECT_VERSION = $GITHUB_RUN_NUMBER/g" FineTune.xcodeproj/project.pbxproj
+
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project FineTune.xcodeproj \
+            -scheme FineTune \
+            -configuration Debug \
+            -skip-testing:FineTuneUITests \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Build app
+        run: |
+          xcodebuild build \
+            -project FineTune.xcodeproj \
+            -scheme FineTune \
+            -configuration Release \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Create disk image
+        run: |
+          mkdir -p build/dmg
+          cp -R build/DerivedData/Build/Products/Release/FineTune.app build/dmg/
+          ln -s /Applications build/dmg/Applications
+          hdiutil create \
+            -volname "FineTune Fork" \
+            -srcfolder build/dmg \
+            -ov \
+            -format UDZO \
+            build/FineTune.dmg
+          codesign --verify --deep --strict build/dmg/FineTune.app
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/FineTune.dmg
+          generate_release_notes: true
+          body: |
+            Personal fork build with the audio linger and tap lifetime fixes.
+
+            This build uses an ad hoc signature and is not notarized. macOS may require opening the app from its context menu the first time.
