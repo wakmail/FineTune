@@ -312,7 +312,8 @@ struct AutoEQSearchPanel: View {
 
                 miniToggle(
                     label: "Preamp",
-                    isOn: preampEnabled
+                    isOn: preampEnabled,
+                    isEnabled: isCorrectionEnabled
                 ) { onPreampToggle?() }
 
                 Spacer()
@@ -330,6 +331,7 @@ struct AutoEQSearchPanel: View {
     private func miniToggle(
         label: String,
         isOn: Bool,
+        isEnabled: Bool = true,
         action: @escaping () -> Void
     ) -> some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
@@ -346,9 +348,13 @@ struct AutoEQSearchPanel: View {
             .scaleEffect(0.65)
             .labelsHidden()
         }
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.45)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
-        .accessibilityValue(isOn ? "On" : "Off")
+        .accessibilityValue(
+            isEnabled ? (isOn ? "On" : "Off") : "Unavailable while Correction is off"
+        )
     }
 
     // MARK: - Search Field
