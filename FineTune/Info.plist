@@ -11,9 +11,9 @@
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>FineTune uses Bluetooth to connect paired audio devices from the menu bar.</string>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/ronitsingh10/FineTune/main/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/wakmail/FineTune/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>xExSoQmCLDCez0KyhZ9EM9PdOZFZgyX/+VF+OVrpIlo=</string>
+	<string>LJKQXLLt2C0cC69kDZHJVrGEnX9SzJz49p3MKT5n+Aw=</string>
 	<key>SUEnableInstallerLauncherService</key>
 	<true/>
 	<key>CFBundleURLTypes</key>
