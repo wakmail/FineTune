@@ -48,6 +48,12 @@ jobs:
             CODE_SIGN_IDENTITY=- \
             CODE_SIGNING_REQUIRED=NO
 
+      - name: Sign app consistently
+        run: |
+          APP_PATH="build/DerivedData/Build/Products/Release/FineTune.app"
+          codesign --force --deep --sign - --timestamp=none "$APP_PATH"
+          codesign --verify --deep --strict "$APP_PATH"
+
       - name: Create disk image
         run: |
           mkdir -p build/dmg
