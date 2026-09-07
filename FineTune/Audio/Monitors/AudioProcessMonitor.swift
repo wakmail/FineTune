@@ -341,6 +341,16 @@ final class AudioProcessMonitor: AudioProcessMonitoring {
         }
     }
 
+#if DEBUG
+    /// Lets tests await the scheduled work without relying on scheduler timing.
+    func waitForPendingRemovals() async {
+        let tasks = Array(pendingRemovalTasks.values)
+        for task in tasks {
+            await task.value
+        }
+    }
+#endif
+
     private func publish(_ apps: [AudioApp]) {
         let sorted = apps.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending

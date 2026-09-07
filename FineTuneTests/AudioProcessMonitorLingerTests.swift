@@ -18,14 +18,14 @@ struct AudioProcessMonitorLingerTests {
 
     @Test("Stopped apps remain until the linger duration expires")
     func removalsAreDelayed() async {
-        let monitor = AudioProcessMonitor(removalLingerDuration: .milliseconds(50))
+        let monitor = AudioProcessMonitor(removalLingerDuration: .milliseconds(10))
         let app = makeApp(pid: 102, objectID: 202)
         monitor.applyDetectedApps([app])
 
         monitor.applyDetectedApps([])
         #expect(monitor.activeApps.map(\.id) == [102])
 
-        try? await Task.sleep(for: .milliseconds(150))
+        await monitor.waitForPendingRemovals()
         #expect(monitor.activeApps.isEmpty)
     }
 
