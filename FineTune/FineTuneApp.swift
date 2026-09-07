@@ -10,6 +10,7 @@ private let logger = Logger(subsystem: "com.finetuneapp.FineTune", category: "Ap
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     var audioEngine: AudioEngine?
+    private var showingAudioRestartAlert = false
 
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let audioEngine = audioEngine else {
@@ -33,6 +34,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// LSUIElement agent — closing the Settings window must not terminate the app.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    func showAudioPermissionRestartAlert(permission: AudioRecordingPermission) {
+        guard !showingAudioRestartAlert else { return }
+        showingAudioRestartAlert = true
+
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = "Restart FineTune to apply audio access"
+        alert.informativeText = "FineTune must restart before app volume changes can take effect."
+        alert.addButton(withTitle: "Restart FineTune")
+        alert.addButton(withTitle: "Later")
+
+        let response = alert.runModal()
+        showingAudioRestartAlert = false
+        if response == .alertFirstButtonReturn {
+            permission.restartApplication()
+        }
     }
 }
 
@@ -223,7 +243,12 @@ struct FineTuneApp: App {
         _resolver = State(initialValue: resolver)
 
         // Pass engine to AppDelegate
-        _appDelegate.wrappedValue.audioEngine = engine
+        let delegate = _appDelegate.wrappedValue
+        delegate.audioEngine = engine
+        permission.onRestartRequired = { [weak delegate, weak permission] in
+            guard let permission else { return }
+            delegate?.showAudioPermissionRestartAlert(permission: permission)
+        }
 
         if permission.status == .unknown {
             permission.request()

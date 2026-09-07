@@ -752,7 +752,7 @@ struct MenuBarPopupView: View {
         }
         .padding(.bottom, DesignTokens.Spacing.xs)
 
-        if permission.status != .authorized {
+        if permission.status != .authorized || permission.restartRequired {
             PermissionBannerView(permission: permission)
         } else if isEditingDevicePriority {
             appEditModeContent

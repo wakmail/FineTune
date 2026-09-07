@@ -12,12 +12,12 @@ struct PermissionBannerView: View {
                     .font(.title)
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
 
-                Text("Audio capture access required")
+                Text(title)
                     .font(.callout)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
 
-                if permission.status == .denied {
-                    Text("Enable in System Settings \u{2192} Privacy & Security \u{2192} Screen & System Audio Recording")
+                if let detail {
+                    Text(detail)
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textTertiary)
                         .multilineTextAlignment(.center)
@@ -32,7 +32,13 @@ struct PermissionBannerView: View {
 
     @ViewBuilder
     private var actionButton: some View {
-        if permission.status == .denied {
+        if permission.restartRequired {
+            Button("Restart FineTune") {
+                permission.restartApplication()
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+        } else if permission.status == .denied {
             Button("Open System Settings") {
                 openSystemAudioSettings()
             }
@@ -45,6 +51,22 @@ struct PermissionBannerView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
         }
+    }
+
+    private var title: String {
+        permission.restartRequired
+            ? "Restart FineTune to apply audio access"
+            : "Audio capture access required"
+    }
+
+    private var detail: String? {
+        if permission.restartRequired {
+            return "App volume changes take effect after FineTune restarts."
+        }
+        if permission.status == .denied {
+            return "Enable in System Settings \u{2192} Privacy & Security \u{2192} Screen & System Audio Recording"
+        }
+        return nil
     }
 
     private func openSystemAudioSettings() {

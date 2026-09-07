@@ -20,6 +20,10 @@ enum AudioCapturePermissionStatus {
 final class AudioRecordingPermission {
 
     var status: AudioCapturePermissionStatus = .unknown
+    private(set) var restartRequired = false
+    var onRestartRequired: (() -> Void)?
+
+    private var completedInitialRefresh = false
 
     init() {
         refreshStatus()
@@ -30,17 +34,24 @@ final class AudioRecordingPermission {
     func refreshStatus() {
         #if ENABLE_TCC_SPI
         let result = Self.preflight()
+        let refreshedStatus: AudioCapturePermissionStatus
         switch result {
         case 0:
-            status = .authorized
+            refreshedStatus = .authorized
         case 1:
-            status = .denied
+            refreshedStatus = .denied
         default:
-            status = .unknown
+            refreshedStatus = .unknown
         }
+        updateStatus(
+            refreshedStatus,
+            requireRestartAfterNewAuthorization: completedInitialRefresh
+        )
+        completedInitialRefresh = true
         logger.debug("Audio capture permission preflight: \(result) → \(String(describing: self.status))")
         #else
-        status = .authorized
+        updateStatus(.authorized, requireRestartAfterNewAuthorization: false)
+        completedInitialRefresh = true
         #endif
     }
 
@@ -52,11 +63,45 @@ final class AudioRecordingPermission {
         Self.requestAccess { [weak self] granted in
             Task { @MainActor in
                 guard let self else { return }
-                self.status = granted ? .authorized : .denied
+                self.updateStatus(
+                    granted ? .authorized : .denied,
+                    requireRestartAfterNewAuthorization: true
+                )
                 logger.info("Audio capture permission request result: \(granted)")
             }
         }
         #endif
+    }
+
+    func updateStatus(
+        _ newStatus: AudioCapturePermissionStatus,
+        requireRestartAfterNewAuthorization: Bool
+    ) {
+        let newlyAuthorized = status != .authorized && newStatus == .authorized
+        status = newStatus
+
+        guard requireRestartAfterNewAuthorization, newlyAuthorized, !restartRequired else {
+            return
+        }
+        restartRequired = true
+        onRestartRequired?()
+    }
+
+    func restartApplication() {
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(
+            at: Bundle.main.bundleURL,
+            configuration: configuration
+        ) { _, error in
+            Task { @MainActor in
+                if let error {
+                    logger.error("Could not restart FineTune: \(error.localizedDescription)")
+                    return
+                }
+                NSApplication.shared.terminate(nil)
+            }
+        }
     }
 
     // MARK: - App Activation Observer
