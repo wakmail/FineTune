@@ -16,6 +16,11 @@ final class AudioProcessMonitor: AudioProcessMonitoring {
     var onAppsChanged: (([AudioApp]) -> Void)?
 
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "FineTune", category: "AudioProcessMonitor")
+    private let removalLingerDuration: Duration
+
+    /// Apps remain visible briefly when Core Audio reports that playback stopped.
+    /// This keeps short gaps between sounds from making rows disappear and reappear.
+    private var pendingRemovalTasks: [pid_t: Task<Void, Never>] = [:]
 
     /// Bundle ID prefixes for system daemons that should be filtered from the apps list
     /// These produce system audio (Siri, alerts, notifications) and shouldn't appear as user apps
@@ -86,6 +91,10 @@ final class AudioProcessMonitor: AudioProcessMonitoring {
         mScope: kAudioObjectPropertyScopeGlobal,
         mElement: kAudioObjectPropertyElementMain
     )
+
+    init(removalLingerDuration: Duration = .seconds(3)) {
+        self.removalLingerDuration = removalLingerDuration
+    }
 
     /// Function type for the private responsibility API
     private typealias ResponsibilityFunc = @convention(c) (pid_t) -> pid_t
@@ -178,6 +187,11 @@ final class AudioProcessMonitor: AudioProcessMonitoring {
         periodicRefreshTask?.cancel()
         periodicRefreshTask = nil
 
+        for task in pendingRemovalTasks.values {
+            task.cancel()
+        }
+        pendingRemovalTasks.removeAll()
+
         // Remove process list listener
         if let block = processListListenerBlock {
             AudioObjectRemovePropertyListenerBlock(.system, &processListAddress, .main, block)
@@ -268,19 +282,77 @@ final class AudioProcessMonitor: AudioProcessMonitoring {
             // Update per-process listeners
             updateProcessListeners(for: processIDs)
 
-            let sorted = appsByPID.values.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-
-            // Only fire callback if the app list actually changed (avoids churn from periodic refresh)
-            let oldSet = Set(activeApps.map { AppFingerprint(pid: $0.id, objectIDs: $0.processObjectIDs) })
-            let newSet = Set(sorted.map { AppFingerprint(pid: $0.id, objectIDs: $0.processObjectIDs) })
-
-            activeApps = sorted
-            if oldSet != newSet {
-                onAppsChanged?(activeApps)
-            }
+            applyDetectedApps(Array(appsByPID.values))
 
         } catch {
             logger.error("Failed to refresh process list: \(error.localizedDescription)")
+        }
+    }
+
+    /// Applies the latest Core Audio snapshot. Additions are published immediately,
+    /// while removals wait for the linger duration in case playback resumes.
+    func applyDetectedApps(_ detectedApps: [AudioApp]) {
+        let detectedPIDs = Set(detectedApps.map(\.id))
+
+        for pid in detectedPIDs {
+            pendingRemovalTasks.removeValue(forKey: pid)?.cancel()
+        }
+
+        var appsByPID = Dictionary(
+            activeApps.map { ($0.id, $0) },
+            uniquingKeysWith: { _, latest in latest }
+        )
+
+        // If an app relaunched with a new PID during the linger window, replace the
+        // stale instance so the UI never receives duplicate persistence identifiers.
+        let detectedIdentifiers = Dictionary(
+            detectedApps.map { ($0.persistenceIdentifier, $0.id) },
+            uniquingKeysWith: { _, latest in latest }
+        )
+        for app in activeApps where !detectedPIDs.contains(app.id) {
+            if let replacementPID = detectedIdentifiers[app.persistenceIdentifier], replacementPID != app.id {
+                pendingRemovalTasks.removeValue(forKey: app.id)?.cancel()
+                appsByPID.removeValue(forKey: app.id)
+            }
+        }
+
+        for app in detectedApps {
+            appsByPID[app.id] = app
+        }
+
+        publish(Array(appsByPID.values))
+
+        for app in activeApps where !detectedPIDs.contains(app.id) {
+            let pid = app.id
+            guard appsByPID[pid] != nil, pendingRemovalTasks[pid] == nil else { continue }
+            let lingerDuration = removalLingerDuration
+
+            pendingRemovalTasks[pid] = Task { @MainActor [weak self] in
+                do {
+                    try await Task.sleep(for: lingerDuration)
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled, let self else { return }
+
+                self.pendingRemovalTasks.removeValue(forKey: pid)
+                self.publish(self.activeApps.filter { $0.id != pid })
+            }
+        }
+    }
+
+    private func publish(_ apps: [AudioApp]) {
+        let sorted = apps.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+
+        // Only fire callback if the app list actually changed.
+        let oldSet = Set(activeApps.map { AppFingerprint(pid: $0.id, objectIDs: $0.processObjectIDs) })
+        let newSet = Set(sorted.map { AppFingerprint(pid: $0.id, objectIDs: $0.processObjectIDs) })
+
+        activeApps = sorted
+        if oldSet != newSet {
+            onAppsChanged?(activeApps)
         }
     }
 
