@@ -92,7 +92,7 @@ final class AudioProcessMonitor: AudioProcessMonitoring {
         mElement: kAudioObjectPropertyElementMain
     )
 
-    init(removalLingerDuration: Duration = .seconds(3)) {
+    init(removalLingerDuration: Duration = .seconds(5)) {
         self.removalLingerDuration = removalLingerDuration
     }
 
